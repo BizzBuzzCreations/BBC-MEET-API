@@ -65,6 +65,12 @@ def user_login(request):
 
 @api_view(['GET'])
 def user_profile(request):
+    """
+    User profile
+    Endpoint: /api/auth/profile/
+    Method: GET
+    Response: {"status": status.HTTP_200_OK, "message": "User profile", "data": {"id": 1, "username": "username", "email": "email"}}
+    """
     return Response({
         "status": status.HTTP_200_OK,
         "message": "User profile",

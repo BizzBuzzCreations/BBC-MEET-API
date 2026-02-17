@@ -114,10 +114,10 @@ class MeetingViewSet(ViewSet):
     @action(detail=True, methods=['post'], url_path='upload-photo')
     def upload_photo(self, request, uid=None):
         """
-        Upload a photo for a meeting
-        Endpoint: POST /api/meet/{uid}/upload-photo/
-        Body: multipart/form-data
-        Key: file (image file)
+            Upload a photo for a meeting
+            Endpoint: POST /api/meet/{uid}/upload-photo/
+            Body: multipart/form-data
+            Key: file (image file)
         """
         meeting = Meeting.objects.get(uid=uid)
         file = request.FILES.get('file')
