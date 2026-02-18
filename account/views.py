@@ -7,6 +7,7 @@ from django.contrib.auth.models import User
 from .serializers import UserSerializer
 from rest_framework import status
 from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 
 # Create your views here.
 
@@ -18,7 +19,15 @@ def user_create(request):
     Endpoint: /api/auth/create/
     Method: POST
     Body: {"username": "username", "email": "email", "password": "password"}
-    Response: {"refresh": "token", "access": "token", "user": {"id": 1, "username": "username", "email": "email"}}
+    Response: {"status": "201", "message": "User created successfully", "refresh": "token", "access": "token",
+               "data": {
+               "id": 1,
+               "full_name": "full_name", 
+               "username": "username", 
+               "email": "email",
+               "role": "role"
+                }
+            }
     """
     serializer = UserSerializer(data=request.data)
     if serializer.is_valid():
@@ -41,7 +50,8 @@ def user_login(request):
     Endpoint: /api/auth/login/
     Method: POST
     Body: {"username": "username", "password": "password"}
-    Response: {"refresh": "token", "access": "token", "user": {"id": 1, "username": "username", "email": "email"}}
+    Response: {"status": "200", "message": "Login successful", "refresh": "token", "access": "token",
+               "data": {"id": 1, "full_name": "full_name", "username": "username", "email": "email", "role": "role"}}
     """
     username = request.data.get('username')
     password = request.data.get('password')
@@ -54,7 +64,7 @@ def user_login(request):
             "message": "Login successful",
             "refresh": str(refresh),
             "access": str(refresh.access_token),
-            "user": UserSerializer(user).data
+            "data": UserSerializer(user).data
             })
     
     return Response({
@@ -64,12 +74,13 @@ def user_login(request):
 
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def user_profile(request):
     """
     User profile
     Endpoint: /api/auth/profile/
     Method: GET
-    Response: {"status": status.HTTP_200_OK, "message": "User profile", "data": {"id": 1, "username": "username", "email": "email"}}
+    Response: {"status": status.HTTP_200_OK, "message": "User profile", "data": {"id": 1, "full_name": "full_name", "username": "username", "email": "email", "role": "role"}}
     """
     return Response({
         "status": status.HTTP_200_OK,

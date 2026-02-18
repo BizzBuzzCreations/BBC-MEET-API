@@ -18,7 +18,7 @@ class MeetingAdmin(admin.ModelAdmin):
             'fields': ('title', 'description', 'created_by', 'meeting_type')
         }),
         ('Schedule & Location', {
-            'fields': ('location', 'start_time', 'duration_minutes')
+            'fields': ('location', 'start_time', 'duration_minutes', 'recipient_emails')
         }),
         ('Status & Verification', {
             'fields': ('status', 'otp_code', 'is_otp_verified')
