@@ -2,10 +2,19 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 
 class UserSerializer(serializers.ModelSerializer):
+    role = serializers.SerializerMethodField()
+    full_name = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'password']
+        fields = ['id', "full_name", 'username', 'email', 'password', "role"]
         extra_kwargs = {'password': {'write_only': True}}
+
+    def get_role(self, obj):
+        return 1 if obj.is_superuser or obj.is_staff else 0
+    
+    def get_full_name(self, obj):
+        return obj.get_full_name()
 
     def create(self, validated_data):
         user = User.objects.create_user(**validated_data)
