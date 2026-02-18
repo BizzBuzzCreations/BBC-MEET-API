@@ -8,6 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework import status
+from base.views import logger
 
 # Create your views here.
 class MeetingViewSet(ViewSet):
@@ -41,20 +42,28 @@ class MeetingViewSet(ViewSet):
             "recipient_emails": "Meeting Recipient Emails list"
         }
         """
-        serializer = MeetingSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            serializer = MeetingSerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"Error creating meeting: {str(e)}")
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     def retrieve(self, request, uid=None):
         """
         Retrieve a meeting
         Endpoint: GET /api/meet/{uid}/
         """
-        meeting = Meeting.objects.get(uid=uid)
-        serializer = MeetingSerializer(meeting)
-        return Response(serializer.data)
+        try:
+            meeting = Meeting.objects.get(uid=uid)
+            serializer = MeetingSerializer(meeting)
+            return Response(serializer.data)
+        except Exception as e:
+            logger.error(f"Meeting not found for uid: {e}")
+            return Response({"error": "Meeting not found"}, status=status.HTTP_404_NOT_FOUND)
     
     def update(self, request, uid=None):
         """
@@ -73,47 +82,29 @@ class MeetingViewSet(ViewSet):
             "recipient_emails": "Meeting Recipient Emails list"
         }
         """
-        meeting = Meeting.objects.get(uid=uid)
-        serializer = MeetingSerializer(meeting, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            meeting = Meeting.objects.get(uid=uid)
+            serializer = MeetingSerializer(meeting, data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"Meeting not found for uid: {e}")
+            return Response({"error": "Meeting not found"}, status=status.HTTP_404_NOT_FOUND)
     
     def destroy(self, request, uid=None):
         """
         Delete a meeting
         Endpoint: DELETE /api/meet/{uid}/
         """
-        meeting = Meeting.objects.get(uid=uid)
-        meeting.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-    @action(detail=True, methods=['post'],url_path='generate-otp')
-    def generate_otp(self, request, uid=None):
-        """
-        Generate OTP for a meeting
-        Endpoint: POST /api/meet/{uid}/generate-otp/
-        """
-        meeting = Meeting.objects.get(uid=uid)
-        meeting.generate_otp()
-        return Response(status=status.HTTP_200_OK)
-
-    @action(detail=True, methods=['post'], url_path='verify-otp')
-    def verify_otp(self, request, uid=None):
-        """
-        Verify OTP for a meeting
-        Endpoint: POST /api/meet/{uid}/verify-otp/
-        Body: 
-        {
-            "otp_code": "OTP Code"
-        }
-        """
-        meeting = Meeting.objects.get(uid=uid)
-        if meeting.verify_otp(request.data.get('otp_code')):
-            meeting.status_update_completed()
-            return Response({'status': True, 'Message': 'OTP Verified'}, status=status.HTTP_200_OK)
-        return Response({'status': False, 'error': 'Invalid OTP'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            meeting = Meeting.objects.get(uid=uid)
+            meeting.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Exception as e:
+            logger.error(f"Meeting not found for uid: {e}")
+            return Response({"error": "Meeting not found"}, status=status.HTTP_404_NOT_FOUND)
 
     @action(detail=True, methods=['post'], url_path='upload-photo')
     def upload_photo(self, request, uid=None):
@@ -123,13 +114,17 @@ class MeetingViewSet(ViewSet):
             Body: multipart/form-data
             Key: file (image file)
         """
-        meeting = Meeting.objects.get(uid=uid)
-        file = request.FILES.get('file')
-        if not file:
-            return Response({'status': False, 'error': 'No file provided'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        photo = MeetingPhoto.objects.create(meeting=meeting, file=file, uploaded_by=request.user)
-        return Response({'status': True, 'photo_id': photo.id}, status=status.HTTP_201_CREATED)
+        try:
+            meeting = Meeting.objects.get(uid=uid)
+            file = request.FILES.get('file')
+            if not file:
+                return Response({'status': False, 'error': 'No file provided'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            photo = MeetingPhoto.objects.create(meeting=meeting, file=file, uploaded_by=request.user)
+            return Response({'status': True, 'photo_id': photo.id}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            logger.error(f"Meeting not found for uid: {e}")
+            return Response({"error": "Meeting not found"}, status=status.HTTP_404_NOT_FOUND)
 
 class MeetingStatusViewSet(ViewSet):
     permission_classes = [IsAuthenticated]
@@ -148,7 +143,8 @@ class MeetingStatusViewSet(ViewSet):
             meeting.status_update_in_progress()
             serializer = MeetingSerializer(meeting)
             return Response({'status': True, 'data': serializer.data}, status=status.HTTP_200_OK)
-        except Meeting.DoesNotExist:
+        except Exception as e:
+            logger.error(f"Meeting not found for uid: {e}")
             return Response({'status': False, 'error': 'Meeting not found'}, status=status.HTTP_404_NOT_FOUND)
 
     @action(detail=True, methods=['post'], url_path='mark-completed')
@@ -164,16 +160,20 @@ class MeetingStatusViewSet(ViewSet):
         meeting = Meeting.objects.get(uid=uid)
         otp_code = request.data.get('otp_code')
 
-        if otp_code:
-            if meeting.verify_otp(otp_code):
-                meeting.status_update_completed()
-                serializer = MeetingSerializer(meeting)
-                return Response({'status': True, 'data': serializer.data}, status=status.HTTP_200_OK)
+        try:
+            if otp_code:
+                if meeting.verify_otp(otp_code):
+                    meeting.status_update_completed()
+                    serializer = MeetingSerializer(meeting)
+                    return Response({'status': True, 'data': serializer.data}, status=status.HTTP_200_OK)
+                else:
+                    return Response({'status': False, 'error': 'Invalid OTP'}, status=status.HTTP_400_BAD_REQUEST)
             else:
-                return Response({'status': False, 'error': 'Invalid OTP'}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            meeting.generate_otp()
-            return Response({'status': True, 'Message': 'Meeting OTP sent to the recipient.'}, status=status.HTTP_200_OK)
+                meeting.generate_otp()
+                return Response({'status': True, 'Message': 'Meeting OTP sent to the recipient.'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Meeting not found for uid: {e}")
+            return Response({'status': False, 'error': 'Meeting not found'}, status=status.HTTP_404_NOT_FOUND)
 
     @action(detail=True, methods=['post'], url_path='mark-cancelled')
     def mark_cancelled(self, request, uid=None):
@@ -187,5 +187,6 @@ class MeetingStatusViewSet(ViewSet):
             meeting.status_update_cancelled(request.user)
             serializer = MeetingSerializer(meeting)
             return Response({'status': True, 'data': serializer.data}, status=status.HTTP_200_OK)
-        except Meeting.DoesNotExist:
+        except Exception as e:
+            logger.error(f"Meeting not found for uid: {e}")
             return Response({'status': False, 'error': 'Meeting not found'}, status=status.HTTP_404_NOT_FOUND)

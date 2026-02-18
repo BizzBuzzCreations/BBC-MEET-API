@@ -8,6 +8,7 @@ from .serializers import UserSerializer
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.permissions import IsAuthenticated
+from base.views import logger
 
 # Create your views here.
 
@@ -29,18 +30,22 @@ def user_create(request):
                 }
             }
     """
-    serializer = UserSerializer(data=request.data)
-    if serializer.is_valid():
-        user = serializer.save()
-        refresh = RefreshToken.for_user(user)
-        return Response({
-            "status": status.HTTP_201_CREATED,
-            "message": "User created successfully",
-            "refresh": str(refresh),
-            "access": str(refresh.access_token),
-            "data": serializer.data
-            })
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        serializer = UserSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                "status": status.HTTP_201_CREATED,
+                "message": "User created successfully",
+                "refresh": str(refresh),
+                "access": str(refresh.access_token),
+                "data": serializer.data
+                })
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        logger.error(f"User creation failed: {e}")
+        return Response({"error": "User creation failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -56,22 +61,24 @@ def user_login(request):
     username = request.data.get('username')
     password = request.data.get('password')
     user = authenticate(username=username, password=password)
-    
-    if user:
-        refresh = RefreshToken.for_user(user)
+    try:
+        if user:
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                "status": status.HTTP_200_OK,
+                "message": "Login successful",
+                "refresh": str(refresh),
+                "access": str(refresh.access_token),
+                "data": UserSerializer(user).data
+                })
+        
         return Response({
-            "status": status.HTTP_200_OK,
-            "message": "Login successful",
-            "refresh": str(refresh),
-            "access": str(refresh.access_token),
-            "data": UserSerializer(user).data
-            })
-    
-    return Response({
-        "status": status.HTTP_401_UNAUTHORIZED,
-        "message": "Invalid credentials"
-        }, status=status.HTTP_401_UNAUTHORIZED)
-
+            "status": status.HTTP_401_UNAUTHORIZED,
+            "message": "Invalid credentials"
+            }, status=status.HTTP_401_UNAUTHORIZED)
+    except Exception as e:
+        logger.error(f"User login failed: {e}")
+        return Response({"error": "User login failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -82,8 +89,12 @@ def user_profile(request):
     Method: GET
     Response: {"status": status.HTTP_200_OK, "message": "User profile", "data": {"id": 1, "full_name": "full_name", "username": "username", "email": "email", "role": "role"}}
     """
-    return Response({
-        "status": status.HTTP_200_OK,
-        "message": "User profile",
-        "data": UserSerializer(request.user).data
-        })
+    try:
+        return Response({
+            "status": status.HTTP_200_OK,
+            "message": "User profile",
+            "data": UserSerializer(request.user).data
+            })
+    except Exception as e:
+        logger.error(f"User profile failed: {e}")
+        return Response({"error": "User profile failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
