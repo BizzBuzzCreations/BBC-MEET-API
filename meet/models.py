@@ -112,7 +112,8 @@ class Meeting(BaseModel):
         send_mail(subject, message, from_email, recipient_list)
 
     def verify_otp(self, otp_code):
-        if self.otp_code == otp_code:
+        print(str(self.otp_code) == str(otp_code),self.otp_code, otp_code)
+        if str(self.otp_code) == str(otp_code):
             self.is_otp_verified = True
             self.save()
             return True
