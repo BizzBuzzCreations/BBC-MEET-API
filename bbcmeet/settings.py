@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'base',
     'meet',
     'account',
+    'corsheaders',
     'rest_framework',
     'rest_framework_simplejwt',
 ]
@@ -73,6 +74,7 @@ SIMPLE_JWT = {
 }
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -81,6 +83,13 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+CORS_ORIGIN_ALLOW_ALL = True
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:3000",
+#     "https://yourfrontend.com",
+# ]
+
+
 
 ROOT_URLCONF = 'bbcmeet.urls'
 
