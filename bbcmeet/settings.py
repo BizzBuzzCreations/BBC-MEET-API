@@ -41,6 +41,11 @@ DEBUG = env('DEBUG')
 
 ALLOWED_HOSTS = env('ALLOWED_HOSTS')
 
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:8000",
+    "http://meetapi.bizzbuzzcreations.com",
+    "http://192.168.25.253",
+]
 
 # Application definition
 
