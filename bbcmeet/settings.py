@@ -45,6 +45,8 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000",
     "https://meetapi.bizzbuzzcreations.com",
     "http://192.168.25.253",
+    "http://localhost:5173",
+    "https://meeting.bbcfinsrv.com",
 ]
 
 # Application definition
